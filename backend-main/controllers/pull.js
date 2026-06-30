@@ -14,10 +14,16 @@ async function pullRepo() {
       })
       .promise();
 
-    const objects = data.Contents;
+    const objects = data.Contents || [];
+
+    if (objects.length === 0) {
+      console.log("No commits found in S3.");
+      return;
+    }
 
     for (const object of objects) {
       const key = object.Key;
+
       const commitDir = path.join(
         commitsPath,
         path.dirname(key).split("/").pop()
@@ -31,12 +37,20 @@ async function pullRepo() {
       };
 
       const fileContent = await s3.getObject(params).promise();
-      await fs.writeFile(path.join(repoPath, key), fileContent.Body);
 
-      console.log("All commits pulled from S3.");
+      const localFilePath = path.join(repoPath, key);
+
+      // Ensure all folders exist before writing the file
+      await fs.mkdir(path.dirname(localFilePath), {
+        recursive: true,
+      });
+
+      await fs.writeFile(localFilePath, fileContent.Body);
     }
+
+    console.log("All commits pulled from S3.");
   } catch (err) {
-    console.error("Unable to pull : ", err);
+    console.error("Unable to pull:", err);
   }
 }
 
