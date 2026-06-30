@@ -1,0 +1,253 @@
+.issues-page {
+  background-color: #0d1117;
+  color: #e6edf3;
+  min-height: calc(100vh - 48px);
+  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+}
+
+.issues-container {
+  max-width: 1216px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+.issues-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.issues-search-wrapper {
+  flex: 1;
+}
+
+.issues-search-input {
+  width: 100%;
+  padding: 5px 12px;
+  background-color: #0d1117 !important;
+  border: 1px solid #30363d !important;
+  border-radius: 6px !important;
+  color: #e6edf3;
+  font-size: 14px;
+}
+
+.issues-search-input:focus {
+  border-color: #58a6ff !important;
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.3) !important;
+}
+
+/* Issues Table */
+.issues-table-container {
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background-color: #161b22;
+  overflow: hidden;
+}
+
+.issues-table-header {
+  background-color: #161b22;
+  border-bottom: 1px solid #30363d;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-header-left {
+  display: flex;
+  gap: 16px;
+}
+
+.filter-btn {
+  background: none;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+}
+
+.filter-btn:hover {
+  color: #e6edf3;
+}
+
+.filter-btn.active {
+  color: #e6edf3;
+  font-weight: 600;
+}
+
+.issues-list {
+  background-color: #0d1117;
+}
+
+.issue-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px;
+}
+
+.issue-row:hover {
+  background-color: #161b22;
+}
+
+.issue-row-left {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.issue-icon-open {
+  color: #3fb950;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.issue-icon-closed {
+  color: #a371f7;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.issue-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.issue-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.issue-title-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+
+.issue-repo-badge {
+  background-color: rgba(110, 118, 129, 0.15);
+  border: 1px solid #30363d;
+  color: #8b949e;
+  font-size: 12px;
+  border-radius: 20px;
+  padding: 0 8px;
+  line-height: 18px;
+}
+
+.issue-desc-text {
+  font-size: 14px;
+  color: #8b949e;
+  margin-top: 4px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issue-meta-text {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.issue-row-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.btn-sm-action {
+  background-color: #21262d !important;
+  border: 1px solid #30363d !important;
+  color: #c9d1d9 !important;
+  padding: 3px 12px !important;
+  font-size: 12px !important;
+}
+
+.btn-sm-action:hover {
+  background-color: #30363d !important;
+  border-color: #8b949e !important;
+}
+
+.btn-danger-action {
+  color: #f85149 !important;
+}
+
+.btn-danger-action:hover {
+  background-color: #f85149 !important;
+  border-color: #f85149 !important;
+  color: #ffffff !important;
+}
+
+/* Form Styling */
+.new-issue-form-container {
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 24px;
+}
+
+.new-issue-title {
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.form-group-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.issues-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.issues-input, .issues-textarea, .issues-select {
+  width: 100%;
+  background-color: #0d1117 !important;
+  border: 1px solid #30363d !important;
+  border-radius: 6px !important;
+  color: #e6edf3 !important;
+  font-size: 14px !important;
+  padding: 6px 12px !important;
+  font-family: inherit;
+  outline: none;
+}
+
+.issues-input:focus, .issues-textarea:focus, .issues-select:focus {
+  border-color: #58a6ff !important;
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.3) !important;
+}
+
+.btn-cancel {
+  background-color: #21262d !important;
+  border: 1px solid #30363d !important;
+  color: #c9d1d9 !important;
+}
+
+.btn-cancel:hover {
+  background-color: #30363d !important;
+  border-color: #8b949e !important;
+}
+
+.ml-2 {
+  margin-left: 8px;
+}
+.pt-3 {
+  padding-top: 16px;
+}
+.border-top {
+  border-top: 1px solid #30363d;
+}

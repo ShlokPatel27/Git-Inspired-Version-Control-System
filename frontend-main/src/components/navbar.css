@@ -1,0 +1,234 @@
+.github-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 48px;
+  padding: 0 16px;
+  background-color: #010409;
+  border-bottom: 1px solid #30363d;
+  color: #e6edf3;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  font-size: 14px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.header-logo-link {
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s;
+}
+
+.header-logo-link:hover {
+  opacity: 0.7;
+}
+
+.header-logo {
+  height: 32px;
+  width: 32px;
+}
+
+/* Custom real search bar */
+.header-search-container {
+  width: 240px;
+}
+
+.header-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.header-search-icon {
+  position: absolute;
+  left: 8px;
+  color: #8b949e;
+  pointer-events: none;
+}
+
+.header-search-input {
+  width: 100%;
+  padding: 0 8px 0 32px !important;
+  height: 28px;
+  background-color: #0d1117 !important;
+  border: 1px solid #30363d !important;
+  border-radius: 6px !important;
+  color: #e6edf3 !important;
+  font-size: 12px !important;
+  line-height: 28px !important;
+  outline: none !important;
+}
+
+.header-search-input:focus {
+  border-color: #58a6ff !important;
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.3) !important;
+  background-color: #0d1117 !important;
+}
+
+/* Nav links */
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-nav-link {
+  color: #e6edf3;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.header-nav-link:hover {
+  color: #8b949e;
+  text-decoration: none;
+}
+
+.header-nav-link.active {
+  border-bottom: 2px solid #fd8c73;
+  padding-bottom: 2px;
+}
+
+/* Right header controls */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-icon-btn {
+  background: none;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.header-icon-btn:hover {
+  background-color: #21262d;
+  color: #e6edf3;
+}
+
+/* Avatar button */
+.header-avatar-btn {
+  background: none;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+
+.header-avatar-btn:hover {
+  background-color: #21262d;
+}
+
+.header-avatar-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #388bfd;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+/* Dropdown styling */
+.header-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.header-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  margin-top: 8px;
+  background-color: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  width: 180px;
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.dropdown-menu-right {
+  right: 0;
+}
+
+.dropdown-user-header {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.dropdown-username {
+  display: block;
+  font-weight: 600;
+  color: #e6edf3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: #30363d;
+  margin: 4px 0;
+}
+
+.dropdown-item {
+  padding: 6px 16px;
+  color: #c9d1d9;
+  text-align: left;
+  font-size: 13px;
+  text-decoration: none;
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dropdown-item:hover {
+  background-color: #1f6feb;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.dropdown-btn-link {
+  text-align: left;
+}
+
+/* Responsive headers */
+@media (max-width: 768px) {
+  .header-search-container {
+    display: none;
+  }
+  .header-nav {
+    display: none;
+  }
+}
