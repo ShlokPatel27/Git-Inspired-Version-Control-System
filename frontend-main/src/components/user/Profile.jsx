@@ -86,7 +86,7 @@ const Profile = () => {
 
   const fetchAllRepos = async () => {
     try {
-      const response = await fetch("${import.meta.env.VITE_API_URL}/repo/all");
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/repo/all`);
       const data = await response.json();
       if (response.ok) {
         setAllRepos(data || []);
@@ -102,7 +102,7 @@ const Profile = () => {
 
     const fetchUsersCount = async () => {
       try {
-        const { data } = await axios.get("${import.meta.env.VITE_API_URL}/allUsers");
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/allUsers`);
         if (data) {
           setFollowersCount(data.length);
         }

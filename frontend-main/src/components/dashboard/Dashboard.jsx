@@ -60,7 +60,7 @@ const Dashboard = () => {
 
   const fetchSuggestedRepositories = async () => {
     try {
-      const response = await fetch("${import.meta.env.VITE_API_URL}/repo/all");
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/repo/all`);
       const data = await response.json();
       if (response.ok) {
         setSuggestedRepositories(data || []);
