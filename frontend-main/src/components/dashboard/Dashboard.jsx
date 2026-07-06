@@ -45,7 +45,7 @@ const Dashboard = () => {
   const fetchRepositories = async () => {
     try {
       const response = await fetch(
-        `http://localhost:3000/repo/user/${userId}`
+        `${import.meta.env.VITE_API_URL}/repo/user/${userId}`
       );
       const data = await response.json();
       if (response.ok) {
@@ -60,7 +60,7 @@ const Dashboard = () => {
 
   const fetchSuggestedRepositories = async () => {
     try {
-      const response = await fetch("http://localhost:3000/repo/all");
+      const response = await fetch("${import.meta.env.VITE_API_URL}/repo/all");
       const data = await response.json();
       if (response.ok) {
         setSuggestedRepositories(data || []);
@@ -75,7 +75,7 @@ const Dashboard = () => {
   const fetchUserProfile = async () => {
     if (!userId) return;
     try {
-      const { data } = await axios.get(`http://localhost:3000/userProfile/${userId}`);
+      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/userProfile/${userId}`);
       if (data && data.username) {
         setUsername(data.username);
       }
@@ -111,7 +111,7 @@ const Dashboard = () => {
     try {
       setModalLoading(true);
       setModalError("");
-      const res = await axios.post("http://localhost:3000/repo/create", {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/repo/create`, {
         owner: userId,
         name: newRepoName.trim(),
         description: newRepoDesc.trim(),

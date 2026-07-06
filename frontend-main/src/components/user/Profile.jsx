@@ -38,7 +38,7 @@ const Profile = () => {
     const fetchUser = async () => {
       if (!userId) return;
       try {
-        const { data } = await axios.get(`http://localhost:3000/userProfile/${userId}`);
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/userProfile/${userId}`);
         setUserDetails(data);
       } catch (e) {
         console.error(e);
@@ -74,7 +74,7 @@ const Profile = () => {
   const fetchRepositories = async () => {
     if (!userId) return;
     try {
-      const response = await fetch(`http://localhost:3000/repo/user/${userId}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/repo/user/${userId}`);
       const data = await response.json();
       if (response.ok) {
         setRepositories(data.repositories || []);
@@ -86,7 +86,7 @@ const Profile = () => {
 
   const fetchAllRepos = async () => {
     try {
-      const response = await fetch("http://localhost:3000/repo/all");
+      const response = await fetch("${import.meta.env.VITE_API_URL}/repo/all");
       const data = await response.json();
       if (response.ok) {
         setAllRepos(data || []);
@@ -102,7 +102,7 @@ const Profile = () => {
 
     const fetchUsersCount = async () => {
       try {
-        const { data } = await axios.get("http://localhost:3000/allUsers");
+        const { data } = await axios.get("${import.meta.env.VITE_API_URL}/allUsers");
         if (data) {
           setFollowersCount(data.length);
         }
@@ -124,7 +124,7 @@ const Profile = () => {
     setSaveLoading(true);
     try {
       // Update email via backend PUT api
-      await axios.put(`http://localhost:3000/updateProfile/${userId}`, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/updateProfile/${userId}`, {
         email: editEmail,
       });
       // Save local fields

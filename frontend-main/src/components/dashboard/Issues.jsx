@@ -34,7 +34,7 @@ const Issues = () => {
       // 1. Load user repositories to select in create form
       if (userId) {
         try {
-          const { data } = await axios.get(`http://localhost:3000/repo/user/${userId}`);
+          const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/repo/user/${userId}`);
           if (data && data.repositories) {
             setRepositories(data.repositories);
             if (data.repositories.length > 0) {
@@ -76,7 +76,7 @@ const Issues = () => {
 
     // Create issue in backend with repo ID in URL
     try {
-      const response = await axios.post(`http://localhost:3000/issue/create/${selectedRepoId}`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/issue/create/${selectedRepoId}`, {
         title: title.trim(),
         description: description.trim(),
       });

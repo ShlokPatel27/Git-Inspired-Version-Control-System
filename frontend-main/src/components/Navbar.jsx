@@ -20,7 +20,7 @@ const Navbar = () => {
       const userId = localStorage.getItem("userId");
       if (!userId) return;
       try {
-        const { data } = await axios.get(`http://localhost:3000/userProfile/${userId}`);
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/userProfile/${userId}`);
         if (data && data.username) {
           setUsername(data.username);
         }

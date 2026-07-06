@@ -19,7 +19,7 @@ const CreateRepository = () => {
     const fetchUserProfile = async () => {
       if (!userId) return;
       try {
-        const { data } = await axios.get(`http://localhost:3000/userProfile/${userId}`);
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/userProfile/${userId}`);
         if (data && data.username) {
           setUsername(data.username);
         }
@@ -40,7 +40,7 @@ const CreateRepository = () => {
     try {
       setLoading(true);
       setErrorMsg("");
-      const res = await axios.post("http://localhost:3000/repo/create", {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/repo/create`, {
         owner: userId,
         name: repoName.trim(),
         description: description.trim(),

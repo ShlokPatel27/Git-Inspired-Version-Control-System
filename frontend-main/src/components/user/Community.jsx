@@ -15,7 +15,7 @@ const Community = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get("http://localhost:3000/allUsers");
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/allUsers`);
         setUsers(data || []);
       } catch (err) {
         console.error("Error fetching users:", err);

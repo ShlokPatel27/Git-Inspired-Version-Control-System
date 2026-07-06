@@ -19,7 +19,7 @@ const RepoDetail = () => {
     const fetchRepo = async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get(`http://localhost:3000/repo/${id}`);
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/repo/${id}`);
         const repoData = Array.isArray(data) ? data[0] : data;
         if (repoData) {
           setRepo(repoData);
@@ -40,7 +40,7 @@ const RepoDetail = () => {
   const handleDelete = async () => {
     try {
       setDeleting(true);
-      await axios.delete(`http://localhost:3000/repo/delete/${id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/repo/delete/${id}`);
       navigate("/");
     } catch (err) {
       console.error("Error deleting repository:", err);
