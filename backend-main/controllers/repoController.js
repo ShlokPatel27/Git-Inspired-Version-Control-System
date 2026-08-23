@@ -78,13 +78,10 @@ async function fetchRepositoryByName(req, res) {
 }
 
 async function fetchRepositoriesForCurrentUser(req, res) {
-  console.log(req.params);
   const { userID } = req.params;
 
   try {
     const repositories = await Repository.find({ owner: userID });
-
-    console.log(repositories);
 
     res.json({
       message: "Repositories fetched successfully!",

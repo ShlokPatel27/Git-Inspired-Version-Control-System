@@ -23,15 +23,15 @@
 }
 
 .profile-avatar-large {
-  width: 296px;
-  height: 296px;
+  width: 200px;
+  height: 200px;
   border-radius: 50%;
   background-color: #1f6feb;
   border: 1px solid #30363d;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 120px;
+  font-size: 80px;
   font-weight: bold;
   color: #ffffff;
   margin-bottom: 16px;

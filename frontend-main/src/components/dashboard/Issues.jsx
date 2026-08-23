@@ -10,8 +10,24 @@ const Issues = () => {
   const queryParams = new URLSearchParams(location.search);
   const triggerNewVal = queryParams.get("new") === "true";
 
-  const [issues, setIssues] = useState([]);
-  const [repositories, setRepositories] = useState([]);
+  const userId = localStorage.getItem("userId");
+
+  // Synchronous cache reads to eliminate FOUC on page load/refresh
+  const [issues, setIssues] = useState(() => {
+    const local = userId ? (JSON.parse(localStorage.getItem(`mygit_issues_${userId}`)) || []) : [];
+    const global = JSON.parse(localStorage.getItem("mygit_all_issues")) || [];
+    const combined = new Map();
+    local.forEach((i) => combined.set(i._id, i));
+    global.forEach((i) => combined.set(i._id, i));
+    return Array.from(combined.values());
+  });
+  const [repositories, setRepositories] = useState(() => {
+    if (!userId) return [];
+    try {
+      const stored = localStorage.getItem(`mygit_repos_${userId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch (_) { return []; }
+  });
   const [filter, setFilter] = useState("open"); // open or closed
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewForm, setShowNewForm] = useState(triggerNewVal);
@@ -19,10 +35,14 @@ const Issues = () => {
   // New Issue Form states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedRepoId, setSelectedRepoId] = useState("");
+  const [selectedRepoId, setSelectedRepoId] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`mygit_repos_${userId}`);
+      const repos = stored ? JSON.parse(stored) : [];
+      return repos.length > 0 ? repos[0]._id : "";
+    } catch (_) { return ""; }
+  });
   const [loading, setLoading] = useState(false);
-
-  const userId = localStorage.getItem("userId");
 
   // Sync with URL query param `?new=true`
   useEffect(() => {
@@ -31,23 +51,108 @@ const Issues = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      // 1. Load user repositories to select in create form
-      if (userId) {
-        try {
-          const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/repo/user/${userId}`);
-          if (data && data.repositories) {
-            setRepositories(data.repositories);
-            if (data.repositories.length > 0) {
-              setSelectedRepoId(data.repositories[0]._id);
-            }
-          }
-        } catch (e) {
-          console.error("Error loading repositories:", e);
-        }
+      if (!userId) return;
 
-        // 2. Load issues from localStorage
-        const storedIssues = JSON.parse(localStorage.getItem(`mygit_issues_${userId}`)) || [];
-        setIssues(storedIssues);
+      // 1. Fetch repositories from backend
+      let fetchedRepos = [];
+      try {
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/repo/user/${userId}`);
+        if (data && data.repositories) {
+          fetchedRepos = data.repositories;
+          setRepositories(fetchedRepos);
+          localStorage.setItem(`mygit_repos_${userId}`, JSON.stringify(fetchedRepos));
+          if (fetchedRepos.length > 0 && !selectedRepoId) {
+            setSelectedRepoId(fetchedRepos[0]._id);
+          }
+        }
+      } catch (e) {
+        console.error("Error loading repositories:", e);
+      }
+
+      // Also fetch all repos to map repository names and fallback issues
+      let allReposList = [];
+      try {
+        const { data: allData } = await axios.get(`${import.meta.env.VITE_API_URL}/repo/all`);
+        if (Array.isArray(allData)) {
+          allReposList = allData;
+          localStorage.setItem("mygit_all_repos", JSON.stringify(allData));
+        }
+      } catch (e) {
+        allReposList = JSON.parse(localStorage.getItem("mygit_all_repos")) || [];
+      }
+
+      // 2. Fetch issues from backend (MongoDB Atlas)
+      try {
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/issue/all`);
+        if (Array.isArray(data)) {
+          const localStored = userId ? (JSON.parse(localStorage.getItem(`mygit_issues_${userId}`)) || []) : [];
+          const globalStored = JSON.parse(localStorage.getItem("mygit_all_issues")) || [];
+          
+          // Map backend issue fields to expected format
+          const mappedBackend = data.map((b) => {
+            const rawRepo = b.repository;
+            const repoIdStr = typeof rawRepo === "object" && rawRepo ? (rawRepo._id || "").toString() : (rawRepo || "").toString();
+            const matchingRepo = fetchedRepos.find((r) => (r._id || "").toString() === repoIdStr) || allReposList.find((r) => (r._id || "").toString() === repoIdStr);
+            const repoName = (typeof rawRepo === "object" && rawRepo?.name) || matchingRepo?.name || "Repository";
+
+            return {
+              _id: b._id,
+              title: b.title || "Untitled Issue",
+              description: b.description || "",
+              status: b.status || "open",
+              repositoryId: repoIdStr,
+              repositoryName: repoName,
+              createdAt: b.createdAt || new Date().toISOString(),
+            };
+          });
+
+          // Merge local and backend issues by _id
+          const combinedMap = new Map();
+          localStored.forEach((item) => combinedMap.set(item._id, item));
+          globalStored.forEach((item) => combinedMap.set(item._id, item));
+          mappedBackend.forEach((item) => combinedMap.set(item._id, item));
+
+          const merged = Array.from(combinedMap.values());
+          setIssues(merged);
+          if (userId) {
+            localStorage.setItem(`mygit_issues_${userId}`, JSON.stringify(merged));
+          }
+          localStorage.setItem("mygit_all_issues", JSON.stringify(merged));
+        }
+      } catch (e) {
+        console.warn("Backend /issue/all returned error, checking repos fallback:", e.message);
+        // Fallback: if /issue/all failed on Render, extract populated issues from allReposList
+        if (allReposList && allReposList.length > 0) {
+          const extractedFromRepos = [];
+          allReposList.forEach((r) => {
+            if (Array.isArray(r.issues)) {
+              r.issues.forEach((iss) => {
+                if (typeof iss === "object" && iss && iss._id) {
+                  extractedFromRepos.push({
+                    _id: iss._id,
+                    title: iss.title || "Untitled Issue",
+                    description: iss.description || "",
+                    status: iss.status || "open",
+                    repositoryId: r._id,
+                    repositoryName: r.name,
+                    createdAt: iss.createdAt || new Date().toISOString(),
+                  });
+                }
+              });
+            }
+          });
+          if (extractedFromRepos.length > 0) {
+            const combinedMap = new Map();
+            issues.forEach((item) => combinedMap.set(item._id, item));
+            extractedFromRepos.forEach((item) => combinedMap.set(item._id, item));
+            const merged = Array.from(combinedMap.values());
+            setIssues(merged);
+            if (userId) {
+              localStorage.setItem(`mygit_issues_${userId}`, JSON.stringify(merged));
+            }
+            localStorage.setItem("mygit_all_issues", JSON.stringify(merged));
+          }
+        }
       }
     };
     loadData();
@@ -92,7 +197,10 @@ const Issues = () => {
     // Save locally
     const updatedIssues = [newIssueObj, ...issues];
     setIssues(updatedIssues);
-    localStorage.setItem(`mygit_issues_${userId}`, JSON.stringify(updatedIssues));
+    if (userId) {
+      localStorage.setItem(`mygit_issues_${userId}`, JSON.stringify(updatedIssues));
+    }
+    localStorage.setItem("mygit_all_issues", JSON.stringify(updatedIssues));
 
     // Reset form
     setTitle("");
@@ -102,29 +210,69 @@ const Issues = () => {
     navigate("/issues");
   };
 
-  const toggleIssueStatus = (issueId) => {
+  const toggleIssueStatus = async (issueId) => {
+    const target = issues.find((i) => i._id === issueId);
+    const newStatus = target && target.status === "open" ? "closed" : "open";
+
     const updated = issues.map((issue) => {
       if (issue._id === issueId) {
         return {
           ...issue,
-          status: issue.status === "open" ? "closed" : "open",
+          status: newStatus,
         };
       }
       return issue;
     });
     setIssues(updated);
-    localStorage.setItem(`mygit_issues_${userId}`, JSON.stringify(updated));
-  };
-
-  const handleDeleteIssue = (issueId) => {
-    if (window.confirm("Are you sure you want to delete this issue?")) {
-      const updated = issues.filter((issue) => issue._id !== issueId);
-      setIssues(updated);
+    if (userId) {
       localStorage.setItem(`mygit_issues_${userId}`, JSON.stringify(updated));
+    }
+    localStorage.setItem("mygit_all_issues", JSON.stringify(updated));
+
+    // Sync status change with backend
+    try {
+      if (target) {
+        await axios.put(`${import.meta.env.VITE_API_URL}/issue/update/${issueId}`, {
+          title: target.title,
+          description: target.description,
+          status: newStatus,
+        });
+      }
+    } catch (err) {
+      console.warn("Backend status update error:", err.message);
     }
   };
 
-  const filteredIssues = issues.filter((issue) => {
+  const handleDeleteIssue = async (issueId) => {
+    if (window.confirm("Are you sure you want to delete this issue?")) {
+      const updated = issues.filter((issue) => issue._id !== issueId);
+      setIssues(updated);
+      if (userId) {
+        localStorage.setItem(`mygit_issues_${userId}`, JSON.stringify(updated));
+      }
+      localStorage.setItem("mygit_all_issues", JSON.stringify(updated));
+
+      try {
+        await axios.delete(`${import.meta.env.VITE_API_URL}/issue/delete/${issueId}`);
+      } catch (err) {
+        console.warn("Backend delete issue error:", err.message);
+      }
+    }
+  };
+
+  // Filter issues belonging strictly to the current user's repositories
+  const userRepoIds = new Set(repositories.map((r) => (r._id || "").toString()));
+  const userRepoNames = new Set(repositories.map((r) => (r.name || "").toLowerCase()));
+
+  const userIssues = issues.filter((issue) => {
+    // If repositories haven't loaded yet, default to issues cached for this user
+    if (repositories.length === 0) return true;
+    const targetRepoId = (issue.repositoryId || issue.repository?._id || issue.repository || "").toString();
+    const targetRepoName = (issue.repositoryName || issue.repository?.name || "").toLowerCase();
+    return userRepoIds.has(targetRepoId) || userRepoNames.has(targetRepoName);
+  });
+
+  const filteredIssues = userIssues.filter((issue) => {
     const matchesFilter = issue.status === filter;
     const matchesSearch =
       issue.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -133,8 +281,8 @@ const Issues = () => {
     return matchesFilter && matchesSearch;
   });
 
-  const openCount = issues.filter((i) => i.status === "open").length;
-  const closedCount = issues.filter((i) => i.status === "closed").length;
+  const openCount = userIssues.filter((i) => i.status === "open").length;
+  const closedCount = userIssues.filter((i) => i.status === "closed").length;
 
   return (
     <>

@@ -1,3 +1,4 @@
+process.env.AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = "1";
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -96,9 +97,6 @@ function startServer() {
   io.on("connection", (socket) => {
     socket.on("joinRoom", (userID) => {
       user = userID;
-      console.log("=====");
-      console.log(user);
-      console.log("=====");
       socket.join(userID);
     });
   });
@@ -106,7 +104,6 @@ function startServer() {
   const db = mongoose.connection;
 
   db.once("open", async () => {
-    console.log("CRUD operations called");
     // CRUD operations
   });
 

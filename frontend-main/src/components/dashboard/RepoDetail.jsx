@@ -2,39 +2,59 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../Navbar";
+import { useAuth } from "../../authContext";
 import "./repodetail.css";
 
 const RepoDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [repo, setRepo] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const userId = localStorage.getItem("userId");
+  const { cachedUsername } = useAuth();
+
+  // Synchronous cache lookup to eliminate loading flash on navigation
+  const [repo, setRepo] = useState(() => {
+    try {
+      const userRepos = JSON.parse(localStorage.getItem(`mygit_repos_${userId}`)) || [];
+      const found = userRepos.find((r) => r._id === id);
+      if (found) return found;
+      const allRepos = JSON.parse(localStorage.getItem("mygit_all_repos")) || [];
+      return allRepos.find((r) => r._id === id) || null;
+    } catch (_) { return null; }
+  });
+  const [loading, setLoading] = useState(() => !repo);
   const [error, setError] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const userId = localStorage.getItem("userId");
+  const [backendIssues, setBackendIssues] = useState([]);
 
   useEffect(() => {
-    const fetchRepo = async () => {
+    const fetchRepoAndIssues = async () => {
       try {
-        setLoading(true);
         const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/repo/${id}`);
         const repoData = Array.isArray(data) ? data[0] : data;
         if (repoData) {
           setRepo(repoData);
-        } else {
+        } else if (!repo) {
           setError("Repository not found.");
         }
       } catch (err) {
         console.error("Error fetching repository:", err);
-        setError("Failed to load repository.");
+        if (!repo) setError("Failed to load repository.");
       } finally {
         setLoading(false);
       }
+
+      try {
+        const issuesRes = await axios.get(`${import.meta.env.VITE_API_URL}/issue/all`);
+        if (Array.isArray(issuesRes.data)) {
+          setBackendIssues(issuesRes.data);
+        }
+      } catch (e) {
+        console.error("Error fetching repo issues:", e);
+      }
     };
 
-    fetchRepo();
+    fetchRepoAndIssues();
   }, [id]);
 
   const handleDelete = async () => {
@@ -51,11 +71,58 @@ const RepoDetail = () => {
     }
   };
 
-  // Get issues from localStorage (same pattern as Issues.jsx)
+  // Get issues combined from MongoDB Atlas populated repo, backend issue endpoint, and local caches
   const getRepoIssues = () => {
-    if (!userId) return [];
-    const storedIssues = JSON.parse(localStorage.getItem(`mygit_issues_${userId}`)) || [];
-    return storedIssues.filter((issue) => issue.repositoryId === id);
+    const combinedMap = new Map();
+
+    // 1. Issues directly inside repo document (populated from backend)
+    if (repo && Array.isArray(repo.issues)) {
+      repo.issues.forEach((iss) => {
+        if (typeof iss === "object" && iss && iss._id) {
+          combinedMap.set(iss._id.toString(), {
+            _id: iss._id.toString(),
+            title: iss.title || "Untitled Issue",
+            description: iss.description || "",
+            status: iss.status || "open",
+            createdAt: iss.createdAt || new Date().toISOString(),
+          });
+        }
+      });
+    }
+
+    // 2. Issues fetched from GET /issue/all matching this repository
+    if (Array.isArray(backendIssues)) {
+      backendIssues.forEach((iss) => {
+        const repoIdStr = typeof iss.repository === "object" && iss.repository ? (iss.repository._id || "").toString() : (iss.repository || "").toString();
+        if (repoIdStr === id.toString() || iss.repositoryId === id.toString()) {
+          combinedMap.set(iss._id.toString(), {
+            _id: iss._id.toString(),
+            title: iss.title || "Untitled Issue",
+            description: iss.description || "",
+            status: iss.status || "open",
+            createdAt: iss.createdAt || new Date().toISOString(),
+          });
+        }
+      });
+    }
+
+    // 3. Issues saved in localStorage (user or global issues cache)
+    const userStored = userId ? (JSON.parse(localStorage.getItem(`mygit_issues_${userId}`)) || []) : [];
+    const globalStored = JSON.parse(localStorage.getItem("mygit_all_issues")) || [];
+    [...userStored, ...globalStored].forEach((iss) => {
+      const targetId = (iss.repositoryId || iss.repository || "").toString();
+      if (targetId === id.toString()) {
+        combinedMap.set(iss._id.toString(), {
+          _id: iss._id.toString(),
+          title: iss.title || "Untitled Issue",
+          description: iss.description || "",
+          status: iss.status || "open",
+          createdAt: iss.createdAt || new Date().toISOString(),
+        });
+      }
+    });
+
+    return Array.from(combinedMap.values());
   };
 
   if (loading) {
@@ -85,7 +152,7 @@ const RepoDetail = () => {
     );
   }
 
-  const ownerName = repo.owner?.username || "owner";
+  const ownerName = repo.owner?.username || cachedUsername || localStorage.getItem("mygit_cached_username") || "user";
   const issues = getRepoIssues();
 
   return (
@@ -180,7 +247,7 @@ const RepoDetail = () => {
                     <span className="repo-issue-title-text">{issue.title}</span>
                     <span className="repo-issue-desc">{issue.description}</span>
                     <span className="repo-issue-meta">
-                      #{issue._id.substring(6, 12)} · {issue.status === "open" ? "Open" : "Closed"} · {new Date(issue.createdAt).toLocaleDateString()}
+                      #{issue._id ? issue._id.toString().substring(0, 8) : "issue"} · {issue.status === "open" ? "Open" : "Closed"} · {new Date(issue.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>

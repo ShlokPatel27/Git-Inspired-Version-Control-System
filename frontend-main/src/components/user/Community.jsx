@@ -4,19 +4,34 @@ import Navbar from "../Navbar";
 import "./community.css";
 
 const Community = () => {
-  const [users, setUsers] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [followedIds, setFollowedIds] = useState([]);
-  const [loading, setLoading] = useState(true);
-
   const userId = localStorage.getItem("userId");
+
+  const [users, setUsers] = useState(() => {
+    try {
+      const cached = localStorage.getItem("mygit_community_users");
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [followedIds, setFollowedIds] = useState(() => {
+    if (!userId) return [];
+    try {
+      return JSON.parse(localStorage.getItem(`mygit_follows_${userId}`)) || [];
+    } catch (_) { return []; }
+  });
+  const [loading, setLoading] = useState(() => {
+    const cached = localStorage.getItem("mygit_community_users");
+    return !cached;
+  });
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        setLoading(true);
         const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/allUsers`);
-        setUsers(data || []);
+        if (data) {
+          setUsers(data);
+          localStorage.setItem("mygit_community_users", JSON.stringify(data));
+        }
       } catch (err) {
         console.error("Error fetching users:", err);
       } finally {
@@ -25,11 +40,6 @@ const Community = () => {
     };
 
     fetchUsers();
-
-    if (userId) {
-      const storedFollowed = JSON.parse(localStorage.getItem(`mygit_follows_${userId}`)) || [];
-      setFollowedIds(storedFollowed);
-    }
   }, [userId]);
 
   const toggleFollowUser = (targetUserId) => {

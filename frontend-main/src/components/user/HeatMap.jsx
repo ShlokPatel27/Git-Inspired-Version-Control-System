@@ -44,35 +44,31 @@ const getPanelColors = (maxCount) => {
   return colors;
 };
 
+const initHeatMapData = () => {
+  const today = new Date();
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(today.getFullYear() - 1);
+  
+  const day = oneYearAgo.getDay();
+  if (day !== 0) {
+    oneYearAgo.setDate(oneYearAgo.getDate() - day);
+  }
+
+  const startStr = oneYearAgo.toISOString().split("T")[0];
+  const endStr = today.toISOString().split("T")[0];
+  const data = generateActivityData(oneYearAgo, today);
+  const maxCount = Math.max(...data.map((d) => d.count), 1);
+
+  return {
+    startStr,
+    endStr,
+    data,
+    panelColors: getPanelColors(maxCount),
+  };
+};
+
 const HeatMapProfile = () => {
-  const [activityData, setActivityData] = useState([]);
-  const [panelColors, setPanelColors] = useState({});
-  const [startDateStr, setStartDateStr] = useState("");
-  const [endDateStr, setEndDateStr] = useState("");
-
-  useEffect(() => {
-    const today = new Date();
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(today.getFullYear() - 1);
-    
-    // Set starts on Sunday to align grid nicely
-    const day = oneYearAgo.getDay();
-    if (day !== 0) {
-      oneYearAgo.setDate(oneYearAgo.getDate() - day);
-    }
-
-    const startStr = oneYearAgo.toISOString().split("T")[0];
-    const endStr = today.toISOString().split("T")[0];
-    
-    setStartDateStr(startStr);
-    setEndDateStr(endStr);
-
-    const data = generateActivityData(oneYearAgo, today);
-    setActivityData(data);
-
-    const maxCount = Math.max(...data.map((d) => d.count), 1);
-    setPanelColors(getPanelColors(maxCount));
-  }, []);
+  const [mapData] = useState(initHeatMapData);
 
   return (
     <div className="contribution-graph-card">
@@ -81,22 +77,20 @@ const HeatMapProfile = () => {
       </div>
       
       <div className="heatmap-scroll-container">
-        {startDateStr && (
-          <HeatMap
-            className="HeatMapProfile"
-            style={{ color: "#8b949e", backgroundColor: "transparent" }}
-            value={activityData}
-            weekLabels={["Sun", "", "Tue", "", "Thu", "", "Sat"]}
-            startDate={new Date(startDateStr)}
-            endDate={new Date(endDateStr)}
-            rectSize={10}
-            space={2}
-            rectProps={{
-              rx: 2,
-            }}
-            panelColors={panelColors}
-          />
-        )}
+        <HeatMap
+          className="HeatMapProfile"
+          style={{ color: "#8b949e", backgroundColor: "transparent" }}
+          value={mapData.data}
+          weekLabels={["Sun", "", "Tue", "", "Thu", "", "Sat"]}
+          startDate={new Date(mapData.startStr)}
+          endDate={new Date(mapData.endStr)}
+          rectSize={10}
+          space={2}
+          rectProps={{
+            rx: 2,
+          }}
+          panelColors={mapData.panelColors}
+        />
       </div>
       
       <div className="graph-footer">

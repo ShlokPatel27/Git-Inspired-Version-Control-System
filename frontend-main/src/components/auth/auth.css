@@ -84,8 +84,8 @@
 }
 
 .form-group input:focus {
-  border-color: #58a6ff !important;
-  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.3) !important;
+  border-color: #30363d !important;
+  box-shadow: none !important;
   outline: none !important;
 }
 
@@ -99,8 +99,8 @@
 }
 
 .form-group input:-webkit-autofill:focus {
-  border-color: #58a6ff !important;
-  -webkit-box-shadow: 0 0 0 1000px #0d1117 inset, 0 0 0 3px rgba(56, 139, 253, 0.3) !important;
+  border-color: #30363d !important;
+  -webkit-box-shadow: 0 0 0 1000px #0d1117 inset !important;
 }
 
 .auth-submit-btn {

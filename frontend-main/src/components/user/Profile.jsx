@@ -7,8 +7,17 @@ import "./profile.css";
 import { useAuth } from "../../authContext";
 
 const Profile = () => {
-  const [userDetails, setUserDetails] = useState({});
-  const { setCurrentUser } = useAuth();
+  const { setCurrentUser, cachedUsername, updateCachedUsername } = useAuth();
+  const userId = localStorage.getItem("userId");
+
+  // Synchronous cache initialization to eliminate FOUC on page load/refresh
+  const [userDetails, setUserDetails] = useState(() => {
+    if (!userId) return {};
+    return {
+      username: cachedUsername || "",
+      email: localStorage.getItem(`mygit_email_${userId}`) || "",
+    };
+  });
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,27 +28,55 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState(tabParam);
   const [isEditing, setIsEditing] = useState(isEditingParam);
 
-  const [repositories, setRepositories] = useState([]);
-  const [allRepos, setAllRepos] = useState([]);
-  const [starredIds, setStarredIds] = useState([]);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [followersCount, setFollowersCount] = useState(0);
+  const [repositories, setRepositories] = useState(() => {
+    if (!userId) return [];
+    try {
+      const cached = localStorage.getItem(`mygit_repos_${userId}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
+  const [allRepos, setAllRepos] = useState(() => {
+    try {
+      const cached = localStorage.getItem("mygit_all_repos");
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
+  const [starredIds, setStarredIds] = useState(() => {
+    if (!userId) return [];
+    try {
+      return JSON.parse(localStorage.getItem(`mygit_stars_${userId}`)) || [];
+    } catch (_) { return []; }
+  });
+  const [followingCount, setFollowingCount] = useState(() => {
+    if (!userId) return 0;
+    try {
+      const follows = JSON.parse(localStorage.getItem(`mygit_follows_${userId}`)) || [];
+      return follows.length;
+    } catch (_) { return 0; }
+  });
+  const [followersCount, setFollowersCount] = useState(() => {
+    if (!userId) return 1;
+    const cached = localStorage.getItem(`mygit_followers_${userId}`);
+    return cached ? parseInt(cached, 10) : 1;
+  });
 
-  // Edit states
+  // Edit profile form states
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editLink, setEditLink] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
 
-  const userId = localStorage.getItem("userId");
-
   useEffect(() => {
     const fetchUser = async () => {
       if (!userId) return;
       try {
         const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/userProfile/${userId}`);
-        setUserDetails(data);
+        if (data) {
+          setUserDetails(data);
+          if (data.username) updateCachedUsername(data.username);
+          if (data.email) localStorage.setItem(`mygit_email_${userId}`, data.email);
+        }
       } catch (e) {
         console.error(e);
       }
@@ -77,7 +114,9 @@ const Profile = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/repo/user/${userId}`);
       const data = await response.json();
       if (response.ok) {
-        setRepositories(data.repositories || []);
+        const repos = data.repositories || [];
+        setRepositories(repos);
+        localStorage.setItem(`mygit_repos_${userId}`, JSON.stringify(repos));
       }
     } catch (err) {
       console.error("Error fetching user repos:", err);
@@ -89,7 +128,9 @@ const Profile = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/repo/all`);
       const data = await response.json();
       if (response.ok) {
-        setAllRepos(data || []);
+        const repos = data || [];
+        setAllRepos(repos);
+        localStorage.setItem("mygit_all_repos", JSON.stringify(repos));
       }
     } catch (err) {
       console.error("Error fetching all repos:", err);
@@ -103,8 +144,9 @@ const Profile = () => {
     const fetchUsersCount = async () => {
       try {
         const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/allUsers`);
-        if (data) {
+        if (data && data.length) {
           setFollowersCount(data.length);
+          localStorage.setItem(`mygit_followers_${userId}`, data.length.toString());
         }
       } catch (e) {
         console.error("Error fetching users count for followers:", e);
@@ -158,6 +200,7 @@ const Profile = () => {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
+    localStorage.removeItem("mygit_cached_username");
     setCurrentUser(null);
     window.location.href = "/auth";
   };
@@ -173,16 +216,16 @@ const Profile = () => {
           {/* Left Column - User Info Sidebar */}
           <aside className="profile-sidebar">
             <div className="profile-avatar-large">
-              {(userDetails.username || "U")[0].toUpperCase()}
+              {(userDetails.username || cachedUsername || "U")[0].toUpperCase()}
             </div>
             
             {!isEditing ? (
               <>
                 <div className="profile-names-wrapper">
                   <h1 className="profile-fullname">
-                    {localStorage.getItem(`mygit_name_${userId}`) || userDetails.username || "Loading..."}
+                    {localStorage.getItem(`mygit_name_${userId}`) || userDetails.username || cachedUsername || "Loading..."}
                   </h1>
-                  <span className="profile-username">{userDetails.username || "username"}</span>
+                  <span className="profile-username">{userDetails.username || cachedUsername || "username"}</span>
                 </div>
 
                 <div className="profile-bio-section">
@@ -262,7 +305,9 @@ const Profile = () => {
                 <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16" fill="currentColor">
                   <path d="M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2ZM1.5 5.25v7c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-7H1.5Zm13-1.5a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25V4.5h13v-.75Z"></path>
                 </svg>
-                <a href={`mailto:${userDetails.email || ""}`}>{userDetails.email || "email@domain.com"}</a>
+                <a href={`mailto:${userDetails.email || localStorage.getItem(`mygit_email_${userId}`) || ""}`}>
+                  {userDetails.email || localStorage.getItem(`mygit_email_${userId}`) || "user@mygit.com"}
+                </a>
               </div>
               {localStorage.getItem(`mygit_link_${userId}`) && (
                 <div className="profile-detail-item mt-1">

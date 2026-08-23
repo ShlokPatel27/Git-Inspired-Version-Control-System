@@ -1,16 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../../authContext";
 import Navbar from "../Navbar";
 import "./dashboard.css";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [repositories, setRepositories] = useState([]);
+  const { cachedUsername, updateCachedUsername } = useAuth();
+  const userId = localStorage.getItem("userId");
+
+  // Synchronous cache reads to eliminate FOUC on page load/refresh
+  const [repositories, setRepositories] = useState(() => {
+    if (!userId) return [];
+    try {
+      const cached = localStorage.getItem(`mygit_repos_${userId}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
   const [searchQuery, setSearchQuery] = useState("");
-  const [suggestedRepositories, setSuggestedRepositories] = useState([]);
-  const [searchResults, setSearchResults] = useState([]);
-  const [username, setUsername] = useState("");
+  const [suggestedRepositories, setSuggestedRepositories] = useState(() => {
+    try {
+      const cached = localStorage.getItem("mygit_all_repos");
+      return cached ? JSON.parse(cached) : [];
+    } catch (_) { return []; }
+  });
+  const [searchResults, setSearchResults] = useState(() => repositories);
+  const [username, setUsername] = useState(cachedUsername);
+  const [isLoading, setIsLoading] = useState(false);
   const [starredIds, setStarredIds] = useState([]);
 
   // Create repository modal states
@@ -20,8 +37,6 @@ const Dashboard = () => {
   const [newRepoVisibility, setNewRepoVisibility] = useState(true); // true = Public, false = Private
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState("");
-
-  const userId = localStorage.getItem("userId");
 
   useEffect(() => {
     if (userId) {
@@ -43,15 +58,16 @@ const Dashboard = () => {
   };
 
   const fetchRepositories = async () => {
+    if (!userId) return;
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/repo/user/${userId}`
       );
       const data = await response.json();
       if (response.ok) {
-        setRepositories(data.repositories || []);
-      } else {
-        setRepositories([]);
+        const repos = data.repositories || [];
+        setRepositories(repos);
+        localStorage.setItem(`mygit_repos_${userId}`, JSON.stringify(repos));
       }
     } catch (err) {
       console.error("Error while fetching repositories:", err);
@@ -63,9 +79,9 @@ const Dashboard = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/repo/all`);
       const data = await response.json();
       if (response.ok) {
-        setSuggestedRepositories(data || []);
-      } else {
-        setSuggestedRepositories([]);
+        const repos = data || [];
+        setSuggestedRepositories(repos);
+        localStorage.setItem("mygit_all_repos", JSON.stringify(repos));
       }
     } catch (err) {
       console.error("Error while fetching suggested repositories:", err);
@@ -78,6 +94,7 @@ const Dashboard = () => {
       const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/userProfile/${userId}`);
       if (data && data.username) {
         setUsername(data.username);
+        updateCachedUsername(data.username);
       }
     } catch (e) {
       console.error("Error fetching user profile:", e);
@@ -85,9 +102,12 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetchRepositories();
-    fetchSuggestedRepositories();
-    fetchUserProfile();
+    const loadData = async () => {
+      setIsLoading(true);
+      await Promise.all([fetchRepositories(), fetchSuggestedRepositories(), fetchUserProfile()]);
+      setIsLoading(false);
+    };
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -95,7 +115,7 @@ const Dashboard = () => {
       setSearchResults(repositories);
     } else {
       const filtered = repositories.filter((repo) =>
-        repo.name.toLowerCase().includes(searchQuery.toLowerCase())
+        repo && repo.name && repo.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setSearchResults(filtered);
     }
@@ -174,7 +194,7 @@ const Dashboard = () => {
                     <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 1 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 0 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"></path>
                   </svg>
                   <Link to={`/repo/${repo._id}`} className="sidebar-repo-link">
-                    <span className="repo-owner-name">{username || "owner"}</span>
+                    <span className="repo-owner-name">{repo.owner?.username || username || cachedUsername || localStorage.getItem("mygit_cached_username") || "user"}</span>
                     <span className="repo-slash">/</span>
                     <span className="repo-name-text">{repo.name}</span>
                   </Link>
@@ -260,9 +280,9 @@ const Dashboard = () => {
               <h3 className="feed-subheading">Latest Activity</h3>
               <div className="activity-card">
                 <div className="activity-card-header">
-                  <div className="activity-user-avatar">U</div>
+                  <div className="activity-user-avatar">{(username || cachedUsername || "U")[0].toUpperCase()}</div>
                   <div className="activity-header-text">
-                    <span className="text-bold">You</span> created repository <span className="text-bold">MyGit</span>
+                    <span className="text-bold">{username || cachedUsername || "You"}</span> created repository <span className="text-bold">MyGit</span>
                   </div>
                   <span className="activity-time">3 days ago</span>
                 </div>

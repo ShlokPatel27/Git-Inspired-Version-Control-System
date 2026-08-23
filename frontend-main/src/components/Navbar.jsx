@@ -7,10 +7,10 @@ import "./navbar.css";
 import logo from "../assets/github-mark-white.svg";
 
 const Navbar = () => {
-  const { currentUser, setCurrentUser } = useAuth();
+  const { currentUser, setCurrentUser, cachedUsername, updateCachedUsername } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(cachedUsername);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [createDropdownOpen, setCreateDropdownOpen] = useState(false);
   const [bellYellow, setBellYellow] = useState(false);
@@ -23,6 +23,7 @@ const Navbar = () => {
         const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/userProfile/${userId}`);
         if (data && data.username) {
           setUsername(data.username);
+          updateCachedUsername(data.username);
         }
       } catch (e) {
         console.error("Error fetching user in navbar:", e);
@@ -34,8 +35,10 @@ const Navbar = () => {
   }, [currentUser]);
 
   const handleLogout = () => {
+    // Clear session auth keys only
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
+    localStorage.removeItem("mygit_cached_username");
     setCurrentUser(null);
     navigate("/auth");
   };
@@ -146,7 +149,7 @@ const Navbar = () => {
               </div>
               <div className="dropdown-divider"></div>
               <Link to="/profile" className="dropdown-item">Your profile</Link>
-              <Link to="/" className="dropdown-item">Your repositories</Link>
+              <Link to="/profile?tab=repositories" className="dropdown-item">Your repositories</Link>
               <Link to="/profile?tab=stars" className="dropdown-item">Your stars</Link>
               <div className="dropdown-divider"></div>
               <Link to="/profile?edit=true" className="dropdown-item">Settings</Link>

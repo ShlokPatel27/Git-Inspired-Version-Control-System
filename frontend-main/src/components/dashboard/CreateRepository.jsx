@@ -4,11 +4,14 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../Navbar";
 import "./dashboard.css"; // Reuse dashboard styles
 
+import { useAuth } from "../../authContext";
+
 const CreateRepository = () => {
+  const { cachedUsername, updateCachedUsername } = useAuth();
   const [repoName, setRepoName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState(true); // true = Public, false = Private
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(cachedUsername);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   
@@ -22,6 +25,7 @@ const CreateRepository = () => {
         const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/userProfile/${userId}`);
         if (data && data.username) {
           setUsername(data.username);
+          updateCachedUsername(data.username);
         }
       } catch (e) {
         console.error("Error fetching user profile:", e);

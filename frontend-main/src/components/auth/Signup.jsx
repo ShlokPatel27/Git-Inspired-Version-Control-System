@@ -12,7 +12,7 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const { setCurrentUser } = useAuth();
+  const { setCurrentUser, updateCachedUsername } = useAuth();
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
@@ -33,6 +33,9 @@ const Signup = () => {
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("userId", res.data.userId);
+
+      // Cache the username directly since we have it from the signup form
+      updateCachedUsername(username);
 
       setCurrentUser(res.data.userId);
       setLoading(false);

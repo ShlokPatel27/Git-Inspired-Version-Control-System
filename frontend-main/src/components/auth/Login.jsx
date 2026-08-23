@@ -10,7 +10,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const { setCurrentUser } = useAuth();
+  const { setCurrentUser, updateCachedUsername } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -32,6 +32,15 @@ const Login = () => {
       localStorage.setItem("userId", res.data.userId);
 
       setCurrentUser(res.data.userId);
+
+      // Fetch and cache username for instant display on future refreshes
+      try {
+        const profileRes = await axios.get(`${import.meta.env.VITE_API_URL}/userProfile/${res.data.userId}`);
+        if (profileRes.data && profileRes.data.username) {
+          updateCachedUsername(profileRes.data.username);
+        }
+      } catch (_) {}
+
       setLoading(false);
       navigate("/");
     } catch (err) {

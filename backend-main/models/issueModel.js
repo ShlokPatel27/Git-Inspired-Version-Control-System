@@ -22,7 +22,7 @@ const IssueSchema = new Schema(
     },
 
     repository: {
-      type: Schema.Types.ObjectId,
+      type: Schema.Types.Mixed,
       ref: "Repository",
       required: true,
     },
