@@ -59,5 +59,5 @@ From the `backend-main` directory, you can run CLI commands using the `node inde
 - Pull commits: `node index.js pull`
 - Revert to a commit: `node index.js revert <commitID>`
 
-## License
-MIT
+## Live Project link
+https://mygit-frontend.onrender.com/
