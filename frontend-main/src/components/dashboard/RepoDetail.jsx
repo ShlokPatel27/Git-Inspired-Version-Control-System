@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../Navbar";
 import { useAuth } from "../../authContext";
+import { getLanguageColor } from "../../utils/languageColors";
 import "./repodetail.css";
 
 const RepoDetail = () => {
@@ -198,6 +199,21 @@ const RepoDetail = () => {
             <div className="repo-detail-info-row">
               <span className="repo-detail-label">Description</span>
               <span className="repo-detail-value">{repo.description || "No description provided."}</span>
+            </div>
+            <div className="repo-detail-info-row">
+              <span className="repo-detail-label">Language</span>
+              <span className="repo-detail-value" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                <span
+                  style={{
+                    backgroundColor: getLanguageColor(repo.language || "JavaScript"),
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    display: "inline-block",
+                  }}
+                ></span>
+                {repo.language || "JavaScript"}
+              </span>
             </div>
             <div className="repo-detail-info-row">
               <span className="repo-detail-label">Visibility</span>

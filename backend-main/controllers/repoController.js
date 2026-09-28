@@ -4,7 +4,7 @@ const User = require("../models/userModel");
 const Issue = require("../models/issueModel");
 
 async function createRepository(req, res) {
-  const { owner, name, issues, content, description, visibility } = req.body;
+  const { owner, name, issues, content, description, visibility, language } = req.body;
 
   try {
     if (!name) {
@@ -18,6 +18,7 @@ async function createRepository(req, res) {
     const newRepository = new Repository({
       name,
       description,
+      language: language ? language.trim() : "JavaScript",
       visibility,
       owner,
       content,
@@ -39,6 +40,7 @@ async function createRepository(req, res) {
 async function getAllRepositories(req, res) {
   try {
     const repositories = await Repository.find({})
+      .sort({ createdAt: -1 })
       .populate("owner")
       .populate("issues");
 
@@ -81,7 +83,8 @@ async function fetchRepositoriesForCurrentUser(req, res) {
   const { userID } = req.params;
 
   try {
-    const repositories = await Repository.find({ owner: userID });
+    const repositories = await Repository.find({ owner: userID })
+      .sort({ createdAt: -1 });
 
     res.json({
       message: "Repositories fetched successfully!",

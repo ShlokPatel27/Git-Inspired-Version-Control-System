@@ -5,6 +5,7 @@ import Navbar from "../Navbar";
 import HeatMapProfile from "./HeatMap";
 import "./profile.css";
 import { useAuth } from "../../authContext";
+import { getLanguageColor } from "../../utils/languageColors";
 
 const Profile = () => {
   const { setCurrentUser, cachedUsername, updateCachedUsername } = useAuth();
@@ -384,8 +385,11 @@ const Profile = () => {
                         <p className="pinned-repo-desc">{repo.description || "No description provided."}</p>
                         <div className="pinned-repo-meta">
                           <span className="pinned-repo-meta-item">
-                            <span className="language-dot-span" style={{ backgroundColor: "#f1e05a" }}></span>
-                            JavaScript
+                            <span
+                              className="language-dot-span"
+                              style={{ backgroundColor: getLanguageColor(repo.language || "JavaScript") }}
+                            ></span>
+                            {repo.language || "JavaScript"}
                           </span>
                           <span className="pinned-repo-meta-item" style={{ cursor: "pointer" }} onClick={() => toggleStarRepo(repo._id)}>
                             <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16" fill="currentColor" className="star-icon" style={{ color: starredIds.includes(repo._id) ? "#e3b341" : "inherit" }}>
@@ -443,7 +447,13 @@ const Profile = () => {
                           <h3 className="repo-row-title"><Link to={`/repo/${repo._id}`}>{repo.name}</Link></h3>
                           <p className="repo-row-desc">{repo.description || "No description provided."}</p>
                           <div className="repo-row-meta mt-2">
-                            <span className="repo-meta-span"><span className="language-dot-span" style={{ backgroundColor: "#f1e05a" }}></span>JavaScript</span>
+                            <span className="repo-meta-span">
+                              <span
+                                className="language-dot-span"
+                                style={{ backgroundColor: getLanguageColor(repo.language || "JavaScript") }}
+                              ></span>
+                              {repo.language || "JavaScript"}
+                            </span>
                             <span className="repo-meta-span">{repo.visibility ? "Public" : "Private"}</span>
                           </div>
                         </div>
@@ -481,8 +491,11 @@ const Profile = () => {
                           <p className="repo-row-desc">{repo.description || "No description available."}</p>
                           <div className="repo-row-meta mt-2">
                             <span className="repo-meta-span">
-                              <span className="language-dot-span" style={{ backgroundColor: "#f1e05a" }}></span>
-                              JavaScript
+                              <span
+                                className="language-dot-span"
+                                style={{ backgroundColor: getLanguageColor(repo.language || "JavaScript") }}
+                              ></span>
+                              {repo.language || "JavaScript"}
                             </span>
                             <span className="repo-meta-span">{repo.visibility ? "Public" : "Private"}</span>
                           </div>

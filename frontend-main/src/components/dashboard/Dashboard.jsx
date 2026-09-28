@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../authContext";
 import Navbar from "../Navbar";
+import { getLanguageColor } from "../../utils/languageColors";
 import "./dashboard.css";
 
 const Dashboard = () => {
@@ -10,19 +11,31 @@ const Dashboard = () => {
   const { cachedUsername, updateCachedUsername } = useAuth();
   const userId = localStorage.getItem("userId");
 
+  // Helper to sort repositories newest first
+  const sortNewestFirst = (list) => {
+    if (!Array.isArray(list)) return [];
+    return [...list].sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+  };
+
   // Synchronous cache reads to eliminate FOUC on page load/refresh
   const [repositories, setRepositories] = useState(() => {
     if (!userId) return [];
     try {
       const cached = localStorage.getItem(`mygit_repos_${userId}`);
-      return cached ? JSON.parse(cached) : [];
+      const list = cached ? JSON.parse(cached) : [];
+      return sortNewestFirst(list);
     } catch (_) { return []; }
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestedRepositories, setSuggestedRepositories] = useState(() => {
     try {
       const cached = localStorage.getItem("mygit_all_repos");
-      return cached ? JSON.parse(cached) : [];
+      const list = cached ? JSON.parse(cached) : [];
+      return sortNewestFirst(list);
     } catch (_) { return []; }
   });
   const [searchResults, setSearchResults] = useState(() => repositories);
@@ -34,6 +47,7 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newRepoName, setNewRepoName] = useState("");
   const [newRepoDesc, setNewRepoDesc] = useState("");
+  const [newRepoLanguage, setNewRepoLanguage] = useState("");
   const [newRepoVisibility, setNewRepoVisibility] = useState(true); // true = Public, false = Private
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState("");
@@ -65,7 +79,7 @@ const Dashboard = () => {
       );
       const data = await response.json();
       if (response.ok) {
-        const repos = data.repositories || [];
+        const repos = sortNewestFirst(data.repositories || []);
         setRepositories(repos);
         localStorage.setItem(`mygit_repos_${userId}`, JSON.stringify(repos));
       }
@@ -79,7 +93,7 @@ const Dashboard = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/repo/all`);
       const data = await response.json();
       if (response.ok) {
-        const repos = data || [];
+        const repos = sortNewestFirst(data || []);
         setSuggestedRepositories(repos);
         localStorage.setItem("mygit_all_repos", JSON.stringify(repos));
       }
@@ -131,9 +145,11 @@ const Dashboard = () => {
     try {
       setModalLoading(true);
       setModalError("");
+      const chosenLang = newRepoLanguage.trim() || "JavaScript";
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/repo/create`, {
         owner: userId,
         name: newRepoName.trim(),
+        language: chosenLang,
         description: newRepoDesc.trim(),
         visibility: newRepoVisibility,
         content: [],
@@ -141,13 +157,34 @@ const Dashboard = () => {
       });
 
       if (res.status === 201) {
+        const newRepoObj = {
+          _id: res.data?.repositoryID || ("repo_" + Date.now()),
+          name: newRepoName.trim(),
+          description: newRepoDesc.trim(),
+          language: chosenLang,
+          visibility: newRepoVisibility,
+          owner: {
+            _id: userId,
+            username: username || cachedUsername || "user",
+          },
+          issues: [],
+          content: [],
+          createdAt: new Date().toISOString(),
+        };
+
+        // Immediately prepend to state
+        setRepositories((prev) => [newRepoObj, ...prev.filter(r => r._id !== newRepoObj._id)]);
+        setSuggestedRepositories((prev) => [newRepoObj, ...prev.filter(r => r._id !== newRepoObj._id)]);
+
         // Success
         setNewRepoName("");
         setNewRepoDesc("");
+        setNewRepoLanguage("");
         setNewRepoVisibility(true);
         setIsModalOpen(false);
-        // Refresh repository list
+        // Refresh repository list in background
         fetchRepositories();
+        fetchSuggestedRepositories();
       }
     } catch (err) {
       console.error(err);
@@ -257,8 +294,11 @@ const Dashboard = () => {
                     </p>
                     <div className="explore-repo-meta">
                       <span className="repo-meta-item">
-                        <span className="language-color-dot" style={{ backgroundColor: "#f1e05a" }}></span>
-                        JavaScript
+                        <span
+                          className="language-color-dot"
+                          style={{ backgroundColor: getLanguageColor(repo.language || "JavaScript") }}
+                        ></span>
+                        {repo.language || "JavaScript"}
                       </span>
                       <span className="repo-meta-item">
                         <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16" fill="currentColor">
@@ -378,6 +418,18 @@ const Dashboard = () => {
                   className="modal-text-input"
                 />
                 <p className="modal-input-hint">Great repository names are short and memorable. Need inspiration? How about <span className="text-success-hint">special-fortnight</span>?</p>
+              </div>
+
+              <div className="modal-form-group">
+                <label htmlFor="repoLang" className="modal-label">Language / Technology <span className="text-muted">(optional, e.g. Python, JavaScript, Java, C++, Rust)</span></label>
+                <input
+                  type="text"
+                  id="repoLang"
+                  placeholder="e.g. Python, JavaScript, Java, C++, Go, Rust"
+                  value={newRepoLanguage}
+                  onChange={(e) => setNewRepoLanguage(e.target.value)}
+                  className="modal-text-input"
+                />
               </div>
 
               <div className="modal-form-group">

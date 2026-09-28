@@ -16,6 +16,12 @@ const RepositorySchema = new Schema(
       trim: true,
     },
 
+    language: {
+      type: String,
+      default: "JavaScript",
+      trim: true,
+    },
+
     content: [
       {
         type: String,

@@ -9,6 +9,7 @@ import { useAuth } from "../../authContext";
 const CreateRepository = () => {
   const { cachedUsername, updateCachedUsername } = useAuth();
   const [repoName, setRepoName] = useState("");
+  const [language, setLanguage] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState(true); // true = Public, false = Private
   const [username, setUsername] = useState(cachedUsername);
@@ -44,9 +45,11 @@ const CreateRepository = () => {
     try {
       setLoading(true);
       setErrorMsg("");
+      const chosenLang = language.trim() || "JavaScript";
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/repo/create`, {
         owner: userId,
         name: repoName.trim(),
+        language: chosenLang,
         description: description.trim(),
         visibility: visibility,
         content: [],
@@ -54,6 +57,29 @@ const CreateRepository = () => {
       });
 
       if (res.status === 201) {
+        const newRepoObj = {
+          _id: res.data?.repositoryID || ("repo_" + Date.now()),
+          name: repoName.trim(),
+          description: description.trim(),
+          language: chosenLang,
+          visibility: visibility,
+          owner: {
+            _id: userId,
+            username: username || cachedUsername || "user",
+          },
+          issues: [],
+          content: [],
+          createdAt: new Date().toISOString(),
+        };
+
+        try {
+          const userRepos = JSON.parse(localStorage.getItem(`mygit_repos_${userId}`)) || [];
+          localStorage.setItem(`mygit_repos_${userId}`, JSON.stringify([newRepoObj, ...userRepos.filter(r => r._id !== newRepoObj._id)]));
+
+          const allRepos = JSON.parse(localStorage.getItem("mygit_all_repos")) || [];
+          localStorage.setItem("mygit_all_repos", JSON.stringify([newRepoObj, ...allRepos.filter(r => r._id !== newRepoObj._id)]));
+        } catch (_) {}
+
         navigate("/");
       }
     } catch (err) {
@@ -115,6 +141,20 @@ const CreateRepository = () => {
             <p className="repo-name-hint">
               Great repository names are short and memorable. Need inspiration? How about <span className="suggestion-highlight">improved-waddle</span>?
             </p>
+
+            <div className="form-group mt-3">
+              <label htmlFor="language" className="form-label">
+                Language / Technology <span className="text-muted">(optional, e.g. Python, JavaScript, C++, Java, Rust)</span>
+              </label>
+              <input
+                type="text"
+                id="language"
+                placeholder="e.g. Python, JavaScript, Java, C++, Go, Rust"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="repo-desc-input-field"
+              />
+            </div>
 
             <div className="form-group mt-3">
               <label htmlFor="description" className="form-label">
