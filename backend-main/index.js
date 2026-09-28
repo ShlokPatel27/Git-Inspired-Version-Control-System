@@ -20,70 +20,41 @@ const { revertRepo } = require("./controllers/revert");
 
 dotenv.config();
 
-yargs(hideBin(process.argv))
-  .command("start", "Starts a new server", {}, startServer)
-  .command("init", "Initialise a new repository", {}, initRepo)
-  .command(
-    "add <file>",
-    "Add a file to the repository",
-    (yargs) => {
-      yargs.positional("file", {
-        describe: "File to add to the staging area",
-        type: "string",
-      });
-    },
-    (argv) => {
-      addRepo(argv.file);
-    }
-  )
-  .command(
-    "commit <message>",
-    "Commit the staged files",
-    (yargs) => {
-      yargs.positional("message", {
-        describe: "Commit message",
-        type: "string",
-      });
-    },
-    (argv) => {
-      commitRepo(argv.message);
-    }
-  )
-  .command("push", "Push commits to S3", {}, pushRepo)
-  .command("pull", "Pull commits from S3", {}, pullRepo)
-  .command(
-    "revert <commitID>",
-    "Revert to a specific commit",
-    (yargs) => {
-      yargs.positional("commitID", {
-        describe: "Comit ID to revert to",
-        type: "string",
-      });
-    },
-    (argv) => {
-      revertRepo(argv.commitID);
-    }
-  )
-  .demandCommand(1, "You need at least one command")
-  .help().argv;
+const app = express();
+
+app.use(bodyParser.json());
+app.use(express.json());
+app.use(cors({ origin: "*" }));
+
+// Cache MongoDB connection across Vercel serverless invocations
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected && mongoose.connection.readyState === 1) return;
+  const mongoURI = process.env.MONGODB_URI;
+  if (!mongoURI) {
+    console.error("MONGODB_URI is not set in environment variables!");
+    return;
+  }
+  try {
+    const db = await mongoose.connect(mongoURI);
+    isConnected = db.connections[0].readyState === 1;
+    console.log("MongoDB connected!");
+  } catch (err) {
+    console.error("Unable to connect to MongoDB: ", err);
+  }
+};
+
+// Middleware to ensure DB is connected for HTTP requests
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
+app.use("/", mainRouter);
 
 function startServer() {
-  const app = express();
   const port = process.env.PORT || 3000;
-
-  app.use(bodyParser.json());
-  app.use(express.json());
-
-  const mongoURI = process.env.MONGODB_URI;
-
-  mongoose
-    .connect(mongoURI)
-    .then(() => console.log("MongoDB connected!"))
-    .catch((err) => console.error("Unable to connect : ", err));
-
-  app.use(cors({ origin: "*" }));
-
-  app.use("/", mainRouter);
+  connectDB();
 
   let user = "test";
   const httpServer = http.createServer(app);
@@ -101,13 +72,59 @@ function startServer() {
     });
   });
 
-  const db = mongoose.connection;
-
-  db.once("open", async () => {
-    // CRUD operations
-  });
-
   httpServer.listen(port, () => {
     console.log(`Server is running on PORT ${port}`);
   });
 }
+
+// Only execute yargs CLI parser if command line arguments are provided
+if (process.argv.length > 2) {
+  yargs(hideBin(process.argv))
+    .command("start", "Starts a new server", {}, startServer)
+    .command("init", "Initialise a new repository", {}, initRepo)
+    .command(
+      "add <file>",
+      "Add a file to the repository",
+      (yargs) => {
+        yargs.positional("file", {
+          describe: "File to add to the staging area",
+          type: "string",
+        });
+      },
+      (argv) => {
+        addRepo(argv.file);
+      }
+    )
+    .command(
+      "commit <message>",
+      "Commit the staged files",
+      (yargs) => {
+        yargs.positional("message", {
+          describe: "Commit message",
+          type: "string",
+        });
+      },
+      (argv) => {
+        commitRepo(argv.message);
+      }
+    )
+    .command("push", "Push commits to S3", {}, pushRepo)
+    .command("pull", "Pull commits from S3", {}, pullRepo)
+    .command(
+      "revert <commitID>",
+      "Revert to a specific commit",
+      (yargs) => {
+        yargs.positional("commitID", {
+          describe: "Comit ID to revert to",
+          type: "string",
+        });
+      },
+      (argv) => {
+        revertRepo(argv.commitID);
+      }
+    )
+    .demandCommand(1, "You need at least one command")
+    .help().argv;
+}
+
+module.exports = app;
