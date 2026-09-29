@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../authContext";
 import "./navbar.css";
@@ -10,10 +10,29 @@ const Navbar = () => {
   const { currentUser, setCurrentUser, cachedUsername, updateCachedUsername } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [username, setUsername] = useState(cachedUsername);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [createDropdownOpen, setCreateDropdownOpen] = useState(false);
   const [bellYellow, setBellYellow] = useState(false);
+
+  const currentNavSearch = searchParams.get("search") || "";
+  const [searchValue, setSearchValue] = useState(currentNavSearch);
+
+  useEffect(() => {
+    setSearchValue(searchParams.get("search") || "");
+  }, [location.search]);
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearchValue(val);
+    const targetUrl = val.trim() ? `/?search=${encodeURIComponent(val)}` : "/";
+    if (location.pathname !== "/") {
+      navigate(targetUrl);
+    } else {
+      navigate(targetUrl, { replace: true });
+    }
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -71,7 +90,7 @@ const Navbar = () => {
           <img src={logo} alt="MyGit" className="header-logo" />
         </Link>
 
-        <div className="header-search-container">
+        <form onSubmit={(e) => e.preventDefault()} className="header-search-container">
           <div className="header-search-wrapper">
             <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16" fill="currentColor" className="header-search-icon">
               <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"></path>
@@ -79,10 +98,12 @@ const Navbar = () => {
             <input
               type="text"
               placeholder="Search"
+              value={searchValue}
+              onChange={handleSearchChange}
               className="header-search-input"
             />
           </div>
-        </div>
+        </form>
 
         <nav className="header-nav">
           <Link to="/" className={`header-nav-link ${location.pathname === "/" ? "active" : ""}`}>

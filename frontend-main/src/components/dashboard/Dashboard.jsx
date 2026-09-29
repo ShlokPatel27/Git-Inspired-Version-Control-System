@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../authContext";
 import Navbar from "../Navbar";
@@ -8,8 +8,10 @@ import "./dashboard.css";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { cachedUsername, updateCachedUsername } = useAuth();
   const userId = localStorage.getItem("userId");
+  const navSearchQuery = searchParams.get("search") || "";
 
   // Helper to sort repositories newest first
   const sortNewestFirst = (list) => {
@@ -17,7 +19,8 @@ const Dashboard = () => {
     return [...list].sort((a, b) => {
       const timeA = new Date(a.createdAt || 0).getTime();
       const timeB = new Date(b.createdAt || 0).getTime();
-      return timeB - timeA;
+      if (timeA !== timeB) return timeB - timeA;
+      return (b._id || "").localeCompare(a._id || "");
     });
   };
 
@@ -42,6 +45,15 @@ const Dashboard = () => {
   const [username, setUsername] = useState(cachedUsername);
   const [isLoading, setIsLoading] = useState(false);
   const [starredIds, setStarredIds] = useState([]);
+
+  // Filter suggestedRepositories for Explore Repositories based on header search bar
+  const exploreRepositories = suggestedRepositories.filter((repo) => {
+    if (!navSearchQuery.trim()) return true;
+    const q = navSearchQuery.trim().toLowerCase();
+    const ownerName = (repo.owner?.username || repo.owner?.name || "").toLowerCase();
+    const repoName = (repo.name || "").toLowerCase();
+    return ownerName.includes(q) || repoName.includes(q);
+  });
 
   // Create repository modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -253,12 +265,16 @@ const Dashboard = () => {
           <div className="feed-content">
             <h2 className="feed-section-heading">Explore repositories</h2>
             <div className="explore-list">
-              {suggestedRepositories.length === 0 ? (
+              {exploreRepositories.length === 0 ? (
                 <div className="explore-empty-card">
-                  <p>No suggested repositories available at this moment.</p>
+                  <p>
+                    {navSearchQuery.trim()
+                      ? `No repositories found for user or query "${navSearchQuery.trim()}".`
+                      : "No suggested repositories available at this moment."}
+                  </p>
                 </div>
               ) : (
-                suggestedRepositories.slice(0, 6).map((repo) => (
+                exploreRepositories.map((repo) => (
                   <div key={repo._id} className="explore-card">
                     <div className="explore-card-header">
                       <div className="explore-repo-title">
